@@ -4,6 +4,17 @@
 
 The main problem it solves is simple: if your wallet has many reclaimable token accounts, the website flow can trigger dozens or even 100+ wallet signature prompts. This CLI automates that process by talking to the live Reclaim service, signing each prepared transaction locally, and submitting them one by one for you.
 
+## What Reclaiming SOL Means
+
+On Solana, many token accounts hold a small rent deposit. If those token accounts are empty, they can often be closed and the locked SOL can be returned to your wallet.
+
+That is what "reclaiming SOL" means in this project:
+- find empty token accounts in your wallet
+- close them
+- return the reclaimable SOL back to your wallet balance
+
+`reclaim-cli` helps automate that process when there are too many transactions to sign comfortably by hand.
+
 ## What It Does
 
 The CLI connects to `https://reclaim.mwh.app` and:
@@ -109,6 +120,15 @@ After checking the wallet, start the reclaim flow:
 
 ```bash
 cd reclaim-cli
+npm run reclaim
+```
+
+`npm run start` works too, but `npm run reclaim` is the clearer command name for this tool.
+
+Alternative:
+
+```bash
+cd reclaim-cli
 npm run start
 ```
 
@@ -122,7 +142,7 @@ npm install
 cp .env.example .env
 npm run build
 npm run wallet:check
-npm run start
+npm run reclaim
 ```
 
 ## Output

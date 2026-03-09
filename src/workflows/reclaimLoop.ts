@@ -23,7 +23,7 @@ export async function runReclaimLoop(
   config: ReclaimRuntimeConfig,
 ): Promise<ReclaimRunResult[]> {
   const results: ReclaimRunResult[] = [];
-  const maxIterations = config.loop.enabled ? config.loop.maxIterations ?? Number.POSITIVE_INFINITY : 1;
+  const maxIterations = config.loop.enabled ? (config.loop.maxIterations ?? Number.POSITIVE_INFINITY) : 1;
 
   for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
     const publicKey = keypair.publicKey.toBase58();
@@ -63,7 +63,7 @@ export async function runReclaimLoop(
       for (const result of executions) {
         if (result.txid) {
           console.log(
-            `[reclaim] batch=${result.batchIndex + 1}/${batches.length} empty=${result.emptyCount} txid=${result.txid}`,
+            `[reclaim] batch=${result.batchIndex + 1}/${batches.length} empty=${result.emptyCount} txid= ${result.txid}`,
           );
         } else {
           console.error(

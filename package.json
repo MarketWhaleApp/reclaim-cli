@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "reclaim": "node dist/index.js",
     "test": "npm run build && node --test dist/**/*.test.js",
     "wallet:check": "npm run build && node dist/scripts/smokeGet.js"
   },

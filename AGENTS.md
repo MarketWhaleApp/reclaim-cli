@@ -117,3 +117,19 @@ Tell the user:
 - whether any batch failed
 
 If execution fails, explain the failure simply and do not expose secrets.
+
+## Optional Automation
+
+After the user has successfully run the CLI manually, you may suggest setting it up as a daily cron job.
+
+Only suggest this after:
+- the user has completed one successful manual run
+- the user understands that the machine will need to keep local access to `.env`
+
+Example cron entry:
+
+```bash
+0 9 * * * cd /path/to/reclaim-cli && npm run start >> reclaim-cli.log 2>&1
+```
+
+Explain that this runs the reclaim client once per day at 9:00 and writes output to a local log file.
