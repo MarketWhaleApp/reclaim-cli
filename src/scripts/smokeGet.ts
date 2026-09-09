@@ -1,48 +1,28 @@
-import "dotenv/config";
-import { HttpClient } from "../client/http.js";
-import { ReclaimApiClient } from "../client/reclaimApi.js";
-import { loadConfig } from "../config/env.js";
-import { loadKeypair } from "../signer/solanaSigner.js";
-
-const DEFAULT_API_BASE_URL = "https://reclaim.mwh.app";
-const DEFAULT_TIMEOUT_MS = 30_000;
-
+import { CheckError, fetchPreview, previewText, validatePublicAddress } from "../preview/check.js";
+const args = process.argv.slice(2);
+const json = args.includes("--json");
 async function main(): Promise<void> {
-  const cliPublicKey = process.argv[2]?.trim();
-  const publicKey = cliPublicKey || derivePublicKeyFromEnv();
-
-  const api = new ReclaimApiClient(
-    new HttpClient({
-      baseUrl: DEFAULT_API_BASE_URL,
-      timeoutMs: DEFAULT_TIMEOUT_MS,
-    }),
-  );
-
-  const summary = await api.getSummary(publicKey);
-
-  console.log("Wallet Check");
-  console.log("");
-  console.log(`Your wallet ${publicKey} can close ${summary.count} account${summary.count === 1 ? "" : "s"}.`);
-  console.log(`You can receive ${formatSol(summary.netSol)}.`);
-  console.log(`Current wallet balance -> ${formatSol(summary.walletSol)}`);
-  console.log(`Wallet balance after reclaim -> ${formatSol(summary.walletSol + summary.netSol)}`);
-  console.log("");
-  console.log('Run "npm run start" to begin reclaim execution.');
+  const positionals = args.filter(arg => !arg.startsWith("--"));
+  if (args.some(arg => arg.startsWith("--") && arg !== "--json") || positionals.length > 1 || args.filter(a => a === "--json").length > 1) {
+    throw new CheckError("INVALID_REQUEST", "Usage: wallet:check -- PUBLIC_KEY [--json]", 2);
+  }
+  if (json && positionals.length !== 1) throw new CheckError("INVALID_REQUEST", "JSON preview requires a public address; it never loads a signer.", 2);
+  let publicKey = positionals[0];
+  if (!publicKey) {
+    // Explicit public-address previews never load dotenv or a signer.
+    await import("dotenv/config");
+    const { loadConfig } = await import("../config/env.js");
+    const { loadKeypair } = await import("../signer/solanaSigner.js");
+    publicKey = loadKeypair(loadConfig().privateKey).publicKey.toBase58();
+  }
+  validatePublicAddress(publicKey);
+  const preview = await fetchPreview(publicKey, process.env.RECLAIM_API_BASE_URL);
+  process.stdout.write((json ? JSON.stringify(preview) : previewText(preview)) + "\n");
+  process.exitCode = preview.eligibility.status === "eligible" ? 0 : 3;
 }
-
-function derivePublicKeyFromEnv(): string {
-  const config = loadConfig();
-  const keypair = loadKeypair(config.privateKey);
-
-  return keypair.publicKey.toBase58();
-}
-
-function formatSol(value: number): string {
-  return `${value.toFixed(6)} SOL`;
-}
-
-main().catch((error) => {
-  const message = error instanceof Error ? error.message : "Unknown smoke test error";
-  console.error(`[wallet:check] failed: ${message}`);
-  process.exitCode = 1;
+main().catch((error: unknown) => {
+  const e = error instanceof CheckError ? error : new CheckError("PREVIEW_FAILED", "Preview failed. Provide a public address to avoid local signer configuration.", 1);
+  if (json) process.stdout.write(JSON.stringify({ schemaVersion: "1.0", error: { code: e.code, message: e.message, retryable: e.retryable, retryAfterSeconds: e.retryAfterSeconds } }) + "\n");
+  else process.stderr.write(`[wallet:check] ${e.code}: ${e.message}\n`);
+  process.exitCode = e.exitCode;
 });

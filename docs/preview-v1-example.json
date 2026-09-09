@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0",
+  "publicKey": "AuPp4YTMTyqxYXQnHc5KUc6pUuCSsHQpBJhgnD45yqrf",
+  "network": "mainnet-beta",
+  "observation": {
+    "commitment": "confirmed",
+    "minSlot": 101,
+    "maxSlot": 102,
+    "observedAt": "2026-09-09T12:00:00.000Z",
+    "expiresAt": "2026-09-09T12:00:30.000Z"
+  },
+  "accounts": {
+    "scanned": 2,
+    "empty": 2,
+    "candidates": 2,
+    "protected": 0
+  },
+  "amounts": {
+    "walletBalanceLamports": "1000000000",
+    "grossRentLamports": "4078560",
+    "deductions": {
+      "serviceLamports": "244713",
+      "referralPortionLamports": "163142",
+      "referralRecipient": "service",
+      "subsidyLamports": "0",
+      "serviceAccountRentLamports": "0",
+      "networkFeeLamports": null
+    },
+    "estimatedNetLamports": "3670705",
+    "estimatedNetIncludesNetworkFee": false
+  },
+  "eligibility": {
+    "status": "eligible",
+    "reasonCodes": []
+  },
+  "warnings": [
+    "ESTIMATE_NOT_SIMULATED",
+    "NETWORK_FEE_UNKNOWN",
+    "BATCH_ROUNDING_MAY_DIFFER"
+  ],
+  "continueUrl": "https://reclaim.mwh.app/"
+}

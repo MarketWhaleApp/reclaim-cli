@@ -1,200 +1,83 @@
 # reclaim-cli
 
-`reclaim-cli` is a small automation tool for people using `reclaim.mwh.app` who want to reclaim SOL rent from closable empty Solana token accounts without manually signing a huge number of transactions.
+Preview reclaimable Solana token-account rent using a public address. If you later choose to execute, the CLI can sign Reclaim-prepared batches locally.
 
-The main problem it solves is simple: if your wallet has many empty Solana token accounts with reclaimable rent, potentially over 1 SOL total, the website flow can trigger hundreds or thousands of close-account transaction approvals. This CLI automates that process by talking to the live Reclaim service, signing each prepared transaction locally, and submitting the signed transactions through the Reclaim platform.
+The preview-v1 integration in this source checkout requires the matching `/api/v1/preview` service deployment. It is not a newly published npm package or tagged release. For the API contract, limits, and data handling, see [Developer API](https://reclaim.mwh.app/developers).
 
-## What Reclaiming SOL Means
+## Public-address preview — no private key
 
-On Solana, many token accounts hold a small rent deposit. If those token accounts are empty, they can often be closed and the locked SOL can be returned to your wallet.
+Requirements: Node.js 20+ and npm.
 
-That is what "reclaiming SOL" means in this project:
-- find empty token accounts in your wallet
-- close them
-- return the reclaimable SOL back to your wallet balance
-
-`reclaim-cli` helps automate that process when there are too many transactions to sign comfortably by hand.
-
-This tool is only for closing empty token accounts and reclaiming rent. Do not use it to transfer tokens, move wallet balances, send arbitrary transactions, or modify the CLI to sign unrelated transactions.
-
-## Service Fee
-
-The reclaim transaction may include the Reclaim service fee as part of the transaction being signed. This is expected behavior.
-
-Before execution, review the wallet-check preview carefully:
-- reclaiming empty token accounts returns SOL rent to your wallet
-- the transaction may include a service fee
-- `wallet:check` shows the net amount you can receive and projected wallet balance
-- only continue if the wallet address, net reclaim amount, and projected balance look correct
-
-## What It Does
-
-The CLI connects to `https://reclaim.mwh.app` and:
-
-1. checks your wallet for reclaimable accounts
-2. requests prepared reclaim transactions
-3. signs those transactions locally on your machine
-4. submits signed batches automatically with bounded concurrency
-5. prints progress and transaction ids
-
-## Why Use It
-
-Use it when:
-- you already use `reclaim.mwh.app`
-- your wallet has many reclaimable accounts
-- you want to avoid repetitive wallet popups and manual approvals
-
-## Security
-
-- Your private key stays local
-- The private key is never sent to the Reclaim service
-- Only signed transactions are submitted
-- Do not paste your private key into chat, websites, screenshots, logs, or support messages
-- Do not print, inspect, diff, or display `.env`
-
-## Requirements
-
-- Node.js `20+`
-- `npm`
-- your Solana wallet private key
-
-You do not need any global CLI tools or Solana CLI installation.
-
-## Install
-
-```bash
+```sh
+git clone https://github.com/MarketWhaleApp/reclaim-cli.git
 cd reclaim-cli
 npm install
+npm run wallet:check -- PUBLIC_WALLET_ADDRESS
 ```
 
-## Configure
+Replace `PUBLIC_WALLET_ADDRESS`. Use a checkout containing the preview-v1 source. This operation does not read `.env`, load a signer, create a referral, or sign/submit transactions. It sends the public address to the Reclaim preview service and its Solana RPC provider. Provider/access-log retention is described in the developer reference.
 
-Create `.env` only if it does not already exist:
+For machine-readable output:
 
-```bash
-cd reclaim-cli
-cp .env.example .env
+```sh
+npm --silent run wallet:check -- PUBLIC_WALLET_ADDRESS --json
 ```
 
-If `.env` already exists, do not overwrite it.
+The npm `--silent` flag suppresses npm's command banner; compiler diagnostics go to stderr. After a successful build, stdout contains one versioned JSON document on both preview success and handled errors. JSON mode requires an explicit public address and never falls back to a signer. A compilation failure can produce no JSON; check stderr and the exit status.
 
-Open `.env` locally and set your private key:
+The [example JSON](docs/preview-v1-example.json) is illustrative, not a live observation. Lamport amounts are decimal strings. Use `BigInt` for exact arithmetic. The response separates gross rent, base service, referral portion, subsidy, and service account-rent charges. `networkFeeLamports: null` means unknown, not zero; estimated net excludes network fees. Candidate accounts and eligibility are provisional, not a transaction simulation. Token-2022 extensions and close authorities can prevent closure.
 
-```env
-WALLET_PRIVATE_KEY=your_private_key_here
+Observations include the minimum/maximum RPC context slots and a 30-second freshness window. The reads are not an atomic snapshot. Recheck before signing, even within that window.
+
+| Exit | Meaning |
+| --- | --- |
+| 0 | Valid, provisionally eligible preview |
+| 3 | Valid empty or blocked preview; explain the reason codes |
+| 2 | Invalid public address or command arguments |
+| 4 | Throttled; retry after the server's Retry-After interval |
+| 1 | Network, service, stale, incompatible-response, or build failure |
+
+Text mode shows itemized deductions and warnings. The preview does not guarantee a final balance. No external referral input is accepted by v1; the referral portion goes to the service.
+
+A dependency-free example is also included:
+
+```sh
+node scripts/preview-wallet.mjs PUBLIC_WALLET_ADDRESS
 ```
 
-`WALLET_PRIVATE_KEY` supports:
-- base58 secret key
-- JSON array secret key such as `[12,34,...]`
+For an explicitly selected development instance, set `RECLAIM_API_BASE_URL=http://localhost:3104` for the CLI, or pass that URL as the example script's second argument. Production overrides must use HTTPS. Public preview errors do not fall back to the old endpoint, because that would silently change the contract.
 
-## How To Use It
+Agent integration: [version 1.0 agent guide](docs/agents/preview-v1.md). OpenAPI: [preview-v1.json](https://reclaim.mwh.app/openapi/preview-v1.json). MCP packaging is deferred until the contract is stable and preview adoption is demonstrated.
 
-Build the project:
+## Browser signing
 
-```bash
-cd reclaim-cli
+For most users, continue at [Reclaim](https://reclaim.mwh.app/) and review transaction details in your connected wallet. Several batches can require several approvals. Rejecting a transaction is a valid choice. No private key is required by the website.
+
+## Advanced local execution
+
+Execution is a separate action from preview. It requires `WALLET_PRIVATE_KEY` on your own machine and automatically signs service-prepared batches. The current signer does not independently enforce a complete instruction/destination/fee policy. Do not treat a preview as permission for unattended execution.
+
+If you choose local execution, create `.env` from `.env.example` only if it does not already exist. Open it yourself and configure `WALLET_PRIVATE_KEY` (base58 secret key or JSON byte array). Do not overwrite existing configuration. Never paste the private key into chat, a website, screenshots, logs, or support messages.
+
+```sh
 npm run build
-```
-
-Step 1. Check your wallet first
-
-This lets you see how many accounts can be closed and how much SOL you can receive before executing anything.
-
-Use the wallet from `.env`:
-
-```bash
-cd reclaim-cli
 npm run wallet:check
 ```
 
-Or check a specific wallet manually:
+Without a public-address argument, the text preview derives the wallet from your local signer. Confirm that this is the intended wallet; an earlier public-address preview does not select the execution wallet. Review estimated proceeds, deductions, and limitations. When working with an agent, the repository workflow requires `Confirm: run reclaim` before execution.
 
-```bash
-cd reclaim-cli
-npm run wallet:check -- <publicKey>
-```
-
-Example:
-
-```bash
-npm run wallet:check -- 9xQeWvG816bUx9EPfEZ5P4ccqL3fX2CqLkM1Vg5bR6Yh
-```
-
-This script only checks the wallet and prints:
-- wallet address
-- how many accounts can be closed
-- how much SOL you can receive after any service fee reflected by the Reclaim service
-- current wallet balance
-- wallet balance after reclaim
-
-It does not sign or execute any transactions.
-
-When you pass a public key manually, `wallet:check` does not need `WALLET_PRIVATE_KEY`. Reclaim execution always uses the wallet from `.env` and requires `WALLET_PRIVATE_KEY`.
-
-Step 2. Start reclaim execution
-
-After checking the wallet, start the reclaim flow:
-
-```bash
-cd reclaim-cli
+```sh
 npm run reclaim
 ```
 
-`npm run start` works too, but `npm run reclaim` is the clearer command name for this tool.
+`npm run start` is equivalent. These commands request transactions, sign locally, and submit signed batches through the Reclaim service. They begin execution without another per-batch browser confirmation. The private key is not sent to the service.
 
-Alternative:
+Review transaction IDs and failures. Some batches can confirm while others fail. Re-scan before retrying. The current CLI performs one pass with bounded submission concurrency; it is intended for empty-account rent recovery, not arbitrary token transfers or transactions.
 
-```bash
-cd reclaim-cli
-npm run start
+## Development checks
+
+```sh
+npm test
 ```
 
-This starts the actual reclaim execution, signs prepared transactions locally, and submits the signed batches with bounded concurrency.
-
-## Typical Flow
-
-```bash
-cd reclaim-cli
-npm install
-# If .env does not already exist:
-cp .env.example .env
-# Then open .env locally and add WALLET_PRIVATE_KEY.
-npm run build
-npm run wallet:check
-npm run reclaim
-```
-
-## Output
-
-The CLI prints:
-- wallet summary
-- each submitted batch
-- each returned transaction id
-- batch failures
-- final summary
-
-## Service Used
-
-By default the CLI uses the live production service:
-
-- `https://reclaim.mwh.app/api/reclaim`
-- `https://reclaim.mwh.app/api/reclaim/execute`
-
-## Notes
-
-- Batches are submitted with at most 5 requests in flight and a short stagger; results are reported in the original batch order
-- The current implementation signs legacy Solana `Transaction` payloads to match the existing service output
-- The CLI is intentionally simple and runs a single reclaim pass per execution
-
-## Optional Automation
-
-After one successful manual run, you can choose to automate the CLI locally. Only do this if you understand that the machine will retain local signing capability through `.env`, especially if the wallet holds large balances.
-
-Example daily cron entry:
-
-```bash
-0 9 * * * cd /path/to/reclaim-cli && npm run wallet:check && npm run reclaim >> reclaim-cli.log 2>&1
-```
-
-This runs a wallet preview first, then starts one reclaim pass at 9:00 each day and writes output to a local log file.
+Tests include preview JSON validation, zero-result and failure cases, and local mock-server checks of the actual CLI process and dependency-free example. No tests submit a live Solana transaction.

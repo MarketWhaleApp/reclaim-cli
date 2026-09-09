@@ -1,5 +1,12 @@
 # Run reclaim-cli For A User
 
+## Public preview v1 and repository development
+
+For a public-address preview, use `npm --silent run wallet:check -- <PUBLIC_KEY> --json` and the [versioned agent guide](docs/agents/preview-v1.md). Do not create/read `.env` or configure a signer for this mode. Amounts are lamport strings; network fees are unknown and excluded. Treat exit 3 as a valid empty/blocked result, not an execution failure.
+
+The signer setup, exact execution confirmation, and execution checklist below apply only when running an actual reclaim for a user. They do not apply to public-address previews or repository implementation/tests. Public preview and code-development requests are never authorization to sign or submit transactions.
+
+
 Use this repo to help a `reclaim.mwh.app` user safely reclaim SOL rent from closable empty Solana token accounts.
 
 This tool is for users who have many empty Solana token accounts and do not want to manually approve a large number of close-account transactions. The CLI keeps the private key local, signs prepared transactions locally, and submits signed transactions through the Reclaim service.
