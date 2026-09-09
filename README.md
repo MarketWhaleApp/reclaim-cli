@@ -1,6 +1,8 @@
 # reclaim-cli
 
-Preview reclaimable Solana token-account rent using a public address. If you later choose to execute, the CLI can sign Reclaim-prepared batches locally.
+Check candidate Solana token-account rent using a public address, with itemized deductions, provisional eligibility and JSON output for agents. No wallet connection or private key is needed for an explicit public-address preview.
+
+Reclaim deducts 6% service + 4% referral from recovered account lamports; without an external referral both go to the service. Low-balance subsidy/account-rent charges can apply. Estimated net excludes unknown network fees. See the [fees and eligibility reference](https://reclaim.mwh.app/learn/reclaim-solana-rent-tool#fees). Browser signing and advanced local execution are separate choices.
 
 The preview-v1 integration in this source checkout requires the matching `/api/v1/preview` service deployment. It is not a newly published npm package or tagged release. For the API contract, limits, and data handling, see [Developer API](https://reclaim.mwh.app/developers).
 
@@ -48,6 +50,29 @@ node scripts/preview-wallet.mjs PUBLIC_WALLET_ADDRESS
 For an explicitly selected development instance, set `RECLAIM_API_BASE_URL=http://localhost:3104` for the CLI, or pass that URL as the example script's second argument. Production overrides must use HTTPS. Public preview errors do not fall back to the old endpoint, because that would silently change the contract.
 
 Agent integration: [version 1.0 agent guide](docs/agents/preview-v1.md). OpenAPI: [preview-v1.json](https://reclaim.mwh.app/openapi/preview-v1.json). MCP packaging is deferred until the contract is stable and preview adoption is demonstrated.
+
+## Example result and integration
+
+Illustrative funded-wallet example, not a live quote:
+
+```text
+2 candidate accounts; provisional eligibility: eligible
+Gross rent: 0.004078560 SOL
+Service: 0.000244713 SOL; referral portion: 0.000163142 SOL
+Subsidy and service-account rent: 0 SOL
+Estimated net before unknown network fees: 0.003670705 SOL
+No transactions signed or submitted.
+```
+
+Run the offline demonstration (eligible, empty and throttled responses):
+
+```sh
+npm run demo:preview
+```
+
+It uses clearly labeled fixtures and makes no network requests. For a host-controlled tool handler that validates schema, identity, freshness and amount arithmetic, see [the framework-neutral adapter](docs/integrations/preview-tool.md). This is a local integration example, not an accepted upstream plugin or published MCP server.
+
+The [dated wallet study](https://reclaim.mwh.app/learn/i-scanned-1000-solana-wallets-free-sol#results) covers 85 attempted addresses from an archived leaderboard cohort: 75 completed previews and ten failures. Its amounts are historical estimates, not a prediction for your wallet. The updated article requires the matching web deployment.
 
 ## Browser signing
 
