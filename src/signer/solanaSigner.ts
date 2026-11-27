@@ -2,6 +2,8 @@ import { Buffer } from "buffer";
 import bs58 from "bs58";
 import { Keypair, Transaction } from "@solana/web3.js";
 import { WalletConfigError } from "../config/walletConfigError.js";
+import type { ReclaimBatchFees } from "../types/api.js";
+import { checkReclaimTransaction } from "./presignCheck.js";
 
 function parseByteArray(input: unknown): Uint8Array {
   if (!Array.isArray(input)) {
@@ -52,9 +54,18 @@ export function loadKeypair(privateKey: string): Keypair {
   }
 }
 
-export function signUnsignedTransaction(unsignedTx: string, keypair: Keypair): string {
+/**
+ * Check, then sign, a service-prepared reclaim transaction.
+ *
+ * The pre-sign check runs on the same decoded transaction that is signed; on
+ * failure it throws `PresignCheckError` and nothing is signed. `partialSign`
+ * adds the wallet signature while keeping any service fee-payer signature
+ * already present on subsidized batches (`sign` would discard it).
+ */
+export function signReclaimTransaction(unsignedTx: string, keypair: Keypair, fees: ReclaimBatchFees | undefined): string {
   const transaction = Transaction.from(Buffer.from(unsignedTx, "base64"));
-  transaction.sign(keypair);
+  checkReclaimTransaction(transaction, keypair.publicKey, fees);
+  transaction.partialSign(keypair);
 
   return Buffer.from(transaction.serialize()).toString("base64");
 }

@@ -16,11 +16,5 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ReclaimRuntime
     apiBaseUrl: apiBaseUrl.replace(/\/+$/, ""),
     privateKey,
     timeoutMs: DEFAULT_TIMEOUT_MS,
-    loop: {
-      enabled: false,
-      intervalMs: 60_000,
-      maxIterations: 1,
-      stopOnError: true,
-    },
   };
 }

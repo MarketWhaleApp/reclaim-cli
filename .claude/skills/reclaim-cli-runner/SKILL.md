@@ -7,7 +7,7 @@ description: Use when helping a reclaim.mwh.app user run reclaim-cli to preview 
 
 Use this skill to help a `reclaim.mwh.app` user safely run the existing `reclaim-cli`.
 
-The CLI is for users who have many closable empty Solana token accounts and want to reclaim the SOL rent locked in those accounts without manually approving a large number of transactions. The CLI keeps the wallet private key local, signs prepared transactions locally, and submits the signed batches through the Reclaim service with bounded concurrency.
+The CLI is for users who have many closable empty Solana token accounts and want to reclaim the SOL rent locked in those accounts without manually approving a large number of transactions. The CLI keeps the wallet private key local, checks and signs prepared transactions locally, and submits them through the Reclaim service as strictly sequential batches.
 
 This skill is an operator workflow only. It does not replace the CLI, modify the CLI, or add new transaction logic.
 
@@ -124,10 +124,4 @@ Only suggest cron after one successful manual run.
 
 Before suggesting cron, make sure the user understands that the machine will keep local access to `.env` and therefore retain local signing capability.
 
-For safer automation, include the preview before execution:
-
-```bash
-0 9 * * * cd /path/to/reclaim-cli && npm run wallet:check && npm run reclaim >> reclaim-cli.log 2>&1
-```
-
-Explain that this runs a wallet preview first, then runs one reclaim pass at 9:00 each day and writes output to a local log file.
+Scheduled unattended signing is not recommended and not supported. Do not schedule `npm run reclaim` or `npm run start`. A scheduled job may run `npm run wallet:check` only; run `npm run reclaim` manually after reviewing the preview. Do not treat a preview as permission for unattended execution.

@@ -1,14 +1,39 @@
 import { ApiErrorResponse } from "../types/api.js";
 
+const SAFE_TOKEN = /^[A-Za-z0-9_]{1,64}$/;
+
+function safeToken(value: unknown): string | undefined {
+  return typeof value === "string" && SAFE_TOKEN.test(value) ? value : undefined;
+}
+
+/** A non-2xx response. Only sanitized, structured fields are kept for display. */
 export class HttpError extends Error {
   readonly status: number;
   readonly body: unknown;
+  readonly code?: string;
+  readonly category?: string;
+  readonly retryable: boolean;
+  readonly nextAction?: string;
 
   constructor(message: string, status: number, body: unknown) {
     super(message);
     this.name = "HttpError";
     this.status = status;
     this.body = body;
+
+    const fields: ApiErrorResponse = typeof body === "object" && body !== null ? (body as ApiErrorResponse) : {};
+    this.code = safeToken(fields.code);
+    this.category = safeToken(fields.category);
+    this.retryable = fields.retryable === true || fields.retriable === true;
+    this.nextAction = safeToken(fields.nextAction);
+  }
+}
+
+/** The request was sent but no response arrived in time; the outcome is unknown. */
+export class RequestTimeoutError extends Error {
+  constructor(readonly timeoutMs: number) {
+    super(`Request timed out after ${timeoutMs}ms`);
+    this.name = "RequestTimeoutError";
   }
 }
 
@@ -16,6 +41,10 @@ export interface HttpClientOptions {
   baseUrl: string;
   timeoutMs: number;
   defaultHeaders?: Record<string, string>;
+}
+
+export interface RequestOptions {
+  timeoutMs?: number;
 }
 
 export class HttpClient {
@@ -29,47 +58,17 @@ export class HttpClient {
     this.defaultHeaders = options.defaultHeaders ?? {};
   }
 
-  async get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T> {
-    const url = new URL(`${this.baseUrl}${path}`);
-    if (query) {
-      for (const [key, value] of Object.entries(query)) {
-        if (value !== undefined) {
-          url.searchParams.set(key, String(value));
-        }
-      }
-    }
-
-    return this.request<T>(url.toString(), { method: "GET" });
-  }
-
-  async post<T>(path: string, body: unknown): Promise<T> {
-    return this.postWithQuery<T>(path, body);
-  }
-
-  async postWithQuery<T>(
-    path: string,
-    body: unknown,
-    query?: Record<string, string | number | undefined>,
-  ): Promise<T> {
-    const url = new URL(`${this.baseUrl}${path}`);
-    if (query) {
-      for (const [key, value] of Object.entries(query)) {
-        if (value !== undefined) {
-          url.searchParams.set(key, String(value));
-        }
-      }
-    }
-
-    return this.request<T>(url.toString(), {
+  async post<T>(path: string, body: unknown, options: RequestOptions = {}): Promise<T> {
+    return this.request<T>(`${this.baseUrl}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    });
+    }, options.timeoutMs ?? this.timeoutMs);
   }
 
-  private async request<T>(input: string, init: RequestInit): Promise<T> {
+  private async request<T>(input: string, init: RequestInit, timeoutMs: number): Promise<T> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(input, {
@@ -85,12 +84,7 @@ export class HttpClient {
       const body = text ? tryParseJson(text) : null;
 
       if (!response.ok) {
-        const errorMessage =
-          typeof body === "object" && body !== null && "error" in body
-            ? String((body as ApiErrorResponse).error)
-            : `Request failed with status ${response.status}`;
-
-        throw new HttpError(errorMessage, response.status, body);
+        throw new HttpError(`Request failed with status ${response.status}`, response.status, body);
       }
 
       return body as T;
@@ -100,7 +94,7 @@ export class HttpClient {
       }
 
       if (error instanceof Error && error.name === "AbortError") {
-        throw new Error(`Request timed out after ${this.timeoutMs}ms`);
+        throw new RequestTimeoutError(timeoutMs);
       }
 
       throw error;

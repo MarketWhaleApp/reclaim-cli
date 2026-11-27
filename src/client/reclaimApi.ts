@@ -3,22 +3,33 @@ import {
   ExecuteReclaimResponse,
   PrepareReclaimRequest,
   PrepareReclaimResponse,
-  ReclaimSummaryResponse,
 } from "../types/api.js";
 import { HttpClient } from "./http.js";
 
-export class ReclaimApiClient {
-  constructor(private readonly http: HttpClient) {}
+/**
+ * The service sends and confirms each batch before it answers execute, so the
+ * execute call needs far longer than the default request timeout.
+ */
+export const EXECUTE_TIMEOUT_MS = 120_000;
 
-  getSummary(publicKey: string): Promise<ReclaimSummaryResponse> {
-    return this.http.get<ReclaimSummaryResponse>("/api/reclaim", { publicKey });
-  }
+export interface ReclaimApi {
+  prepareNextBatch(payload: PrepareReclaimRequest): Promise<PrepareReclaimResponse>;
+  executeBatch(payload: ExecuteReclaimRequest): Promise<ExecuteReclaimResponse>;
+}
 
-  prepareReclaim(payload: PrepareReclaimRequest): Promise<PrepareReclaimResponse> {
+export class ReclaimApiClient implements ReclaimApi {
+  constructor(
+    private readonly http: HttpClient,
+    private readonly executeTimeoutMs: number = EXECUTE_TIMEOUT_MS,
+  ) {}
+
+  prepareNextBatch(payload: PrepareReclaimRequest): Promise<PrepareReclaimResponse> {
     return this.http.post<PrepareReclaimResponse>("/api/reclaim", payload);
   }
 
-  executeReclaim(payload: ExecuteReclaimRequest): Promise<ExecuteReclaimResponse> {
-    return this.http.post<ExecuteReclaimResponse>("/api/reclaim/execute", payload);
+  executeBatch(payload: ExecuteReclaimRequest): Promise<ExecuteReclaimResponse> {
+    return this.http.post<ExecuteReclaimResponse>("/api/reclaim/execute", payload, {
+      timeoutMs: this.executeTimeoutMs,
+    });
   }
 }

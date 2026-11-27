@@ -2,7 +2,7 @@ import { loadConfig } from "../config/env.js";
 import { HttpClient } from "../client/http.js";
 import { ReclaimApiClient } from "../client/reclaimApi.js";
 import { loadKeypair } from "../signer/solanaSigner.js";
-import { runReclaimLoop } from "../workflows/reclaimLoop.js";
+import { runReclaim } from "../workflows/reclaimLoop.js";
 
 export async function runCommand(): Promise<void> {
   const config = loadConfig();
@@ -15,13 +15,14 @@ export async function runCommand(): Promise<void> {
   });
 
   const api = new ReclaimApiClient(http);
-  const results = await runReclaimLoop(api, keypair, config);
-
-  const totalRuns = results.length;
-  const totalTxids = results.reduce((sum, result) => sum + result.txids.length, 0);
-  const totalFailures = results.reduce((sum, result) => sum + result.failedBatches, 0);
+  const result = await runReclaim(api, keypair);
+  const accountsClosed = result.submitted.reduce((sum, batch) => sum + batch.emptyCount, 0);
 
   console.log(
-    `[reclaim] finished wallet=${publicKey} runs=${totalRuns} submitted=${totalTxids} failedBatches=${totalFailures}`,
+    `[reclaim] finished wallet=${publicKey} submitted=${result.submitted.length} accountsClosed=${accountsClosed} failedBatches=${result.failure ? 1 : 0}`,
   );
+
+  if (result.failure) {
+    process.exitCode = 1;
+  }
 }
