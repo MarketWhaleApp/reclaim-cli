@@ -12,7 +12,7 @@ Proposed source release: v0.2.0. The API schema is separately versioned 1.0. No 
 
 ## Compatibility and requirements
 
-Node.js 20+, npm and the matching production GET /api/v1/preview deployment. This repository is private:true in package.json: distribute a tested GitHub source release, not an npm install claim. Checkout main only after the matching source has been pushed; pin a verified tag once the release exists.
+Node.js 22+, npm and the matching production GET /api/v1/preview deployment. This repository is private:true in package.json: distribute a tested GitHub source release, not an npm install claim. Checkout main only after the matching source has been pushed; pin a verified tag once the release exists.
 
 Public preview never executes. Advanced execution still signs server-prepared transactions locally and lacks a complete independent transaction instruction/destination/fee policy. This release does not expand unattended execution.
 
