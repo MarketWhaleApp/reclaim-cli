@@ -2,7 +2,7 @@
 
 Use this guide when a user wants to inspect or explain potentially reclaimable Solana token-account rent. This version accompanies the preview-v1 source implementation; it does not claim a published package or release tag. It requires a deployed `/api/v1/preview` endpoint (or an explicitly configured local development instance).
 
-From this repository checkout with Node.js 20+:
+From this repository checkout with Node.js 22+:
 
 ```sh
 npm install

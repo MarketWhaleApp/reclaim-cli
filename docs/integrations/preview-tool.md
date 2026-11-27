@@ -1,6 +1,6 @@
 # Public-address preview tool adapter
 
-This checkout includes a framework-neutral TypeScript handler. It is not a published package, framework-specific plugin or MCP server. Node.js 20+. Build with `npm run build`.
+This checkout includes a framework-neutral TypeScript handler. It is not a published package, framework-specific plugin or MCP server. Node.js 22+. Build with `npm run build`.
 
 ```js
 import { previewToolDefinition, previewSolanaRent } from './dist/preview/tool.js';

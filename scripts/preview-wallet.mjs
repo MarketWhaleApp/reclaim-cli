@@ -1,4 +1,4 @@
-// Node.js 20+, no dependencies, no private key or local signer access.
+// Node.js 22+, no dependencies, no private key or local signer access.
 const publicKey = process.argv[2];
 const baseUrl = process.argv[3] ?? "https://reclaim.mwh.app";
 try {

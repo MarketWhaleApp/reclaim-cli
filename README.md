@@ -8,7 +8,7 @@ The preview-v1 integration in this source checkout requires the matching `/api/v
 
 ## Public-address preview — no private key
 
-Requirements: Node.js 20+ and npm.
+Requirements: Node.js 22+ and npm.
 
 ```sh
 git clone https://github.com/MarketWhaleApp/reclaim-cli.git

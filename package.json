@@ -17,7 +17,16 @@
     "dotenv": "^16.6.1"
   },
   "devDependencies": {
-    "@types/node": "^24.6.0",
+    "@types/node": "^22.20.7",
     "typescript": "^5.9.3"
-  }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarketWhaleApp/reclaim-cli.git"
+  },
+  "description": "Reclaim SOL rent from empty Solana token accounts."
 }
