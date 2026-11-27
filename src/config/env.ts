@@ -1,4 +1,5 @@
 import { ReclaimRuntimeConfig } from "../types/config.js";
+import { WalletConfigError } from "./walletConfigError.js";
 
 const DEFAULT_API_BASE_URL = "https://reclaim.mwh.app";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -8,7 +9,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ReclaimRuntime
   const privateKey = env.WALLET_PRIVATE_KEY?.trim();
 
   if (!privateKey) {
-    throw new Error("Missing WALLET_PRIVATE_KEY");
+    throw new WalletConfigError("missingKey");
   }
 
   return {
