@@ -13,6 +13,8 @@ Replace the placeholder with the user's public address. This mode needs no `.env
 
 Interpret schemaVersion `1.0` using the [developer contract](https://reclaim.mwh.app/developers) and [illustrative response](../preview-v1-example.json). Amounts are exact lamport strings; use BigInt rather than floating point. Show candidate count, gross rent, each deduction, and the estimated net before network fees. `networkFeeLamports: null` means unknown. Eligibility is provisional; a candidate count is not proof of successful closure. Show blocking reasons and validation warnings. Observations span context slots rather than an atomic snapshot; refresh expired results and recheck before any signing decision.
 
+Empty accounts with a foreign close authority can make `empty` exceed `candidates + protected`. Eligible previews can include an `UNSUPPORTED_CLOSE_AUTHORITY` warning.
+
 Exit status 0 means provisionally eligible. Status 3 means a valid empty or blocked preview; parse and explain it. Status 2 is invalid input, 4 is throttling, and 1 is a failed, stale, or incompatible response. For throttling, wait for server Retry-After (or retry later); do not loop aggressively. Machine consumers use the npm `--silent` flag so stdout is a single JSON document. Compilation errors are on stderr.
 
 Offer the browser workflow at https://reclaim.mwh.app/ when the user wants to continue. Advanced local execution is documented in the repository README and requires its separate signing confirmation. A public preview never authorizes execution. Do not request, read, print, or transmit secret key material. Do not claim the current signer validates a complete instruction/destination/fee policy; expanding unattended signing requires that separate implementation.

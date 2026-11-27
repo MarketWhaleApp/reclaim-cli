@@ -20,6 +20,7 @@ test("validates exact lamport math, schema, identity, timestamps, and unknown ne
     (p: any) => { p.amounts.estimatedNetLamports = "999999"; },
     (p: any) => { p.amounts.deductions.networkFeeLamports = "0"; },
     (p: any) => { p.accounts.scanned = -1; },
+    (p: any) => { p.accounts.protected = 1; },
     (p: any) => { p.eligibility.status = "approved"; },
   ]) {
     const p = structuredClone(fixture); mutate(p);
@@ -62,8 +63,24 @@ test("CLI JSON process and dependency-free example never enroll or sign", async 
     payload.eligibility = { status: "no_accounts", reasonCodes: ["NO_EMPTY_ACCOUNTS"] };
     const empty = await run(["dist/scripts/smokeGet.js", fixture.publicKey, "--json"], base);
     assert.equal(empty.code, 3, empty.stderr); assert.equal(JSON.parse(empty.stdout).eligibility.status, "no_accounts");
+    payload.accounts = { scanned: 1, empty: 1, candidates: 0, protected: 0 };
+    payload.eligibility.reasonCodes = ["UNSUPPORTED_CLOSE_AUTHORITY"];
+    const unsupported = await run(["dist/scripts/smokeGet.js", fixture.publicKey, "--json"], base);
+    assert.equal(unsupported.code, 3, unsupported.stderr + unsupported.stdout);
+    assert.deepEqual(JSON.parse(unsupported.stdout), payload);
+
+    payload = fresh();
+    payload.accounts = { scanned: 2, empty: 2, candidates: 1, protected: 0 };
+    payload.amounts.grossRentLamports = "2039280";
+    payload.amounts.deductions.serviceLamports = "122356";
+    payload.amounts.deductions.referralPortionLamports = "81571";
+    payload.amounts.estimatedNetLamports = "1835353";
+    payload.warnings.push("UNSUPPORTED_CLOSE_AUTHORITY");
+    const eligible = await run(["dist/scripts/smokeGet.js", fixture.publicKey, "--json"], base);
+    assert.equal(eligible.code, 0, eligible.stderr + eligible.stdout);
+    assert.deepEqual(JSON.parse(eligible.stdout), payload);
     const invalid = await run(["dist/scripts/smokeGet.js", "--json"], base);
     assert.equal(invalid.code, 2); assert.equal(JSON.parse(invalid.stdout).error.code, "INVALID_REQUEST");
-    assert.equal(paths.length, 3); assert.ok(paths.every(path => path.startsWith("/api/v1/preview?publicKey=")));
+    assert.equal(paths.length, 5); assert.ok(paths.every(path => path.startsWith("/api/v1/preview?publicKey=")));
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 });
