@@ -20,7 +20,7 @@ export function validatePreview(value: unknown, publicKey: string, now = Date.no
   if (!Number.isFinite(observed) || !Number.isFinite(expires) || expires <= observed || expires - observed > 30_000 || observed > now + 5_000) return fail();
   if (expires <= now) throw new CheckError("STALE_PREVIEW", "The preview has expired. Request a fresh preview.", 1, true);
   if (![accounts.scanned, accounts.empty, accounts.candidates, accounts.protected].every(integer)) return fail();
-  if (Number(accounts.scanned) > 5000 || Number(accounts.empty) > Number(accounts.scanned) || Number(accounts.candidates) + Number(accounts.protected) !== accounts.empty || Number(accounts.protected) > 1) return fail();
+  if (Number(accounts.scanned) > 5000 || Number(accounts.empty) > Number(accounts.scanned) || Number(accounts.candidates) + Number(accounts.protected) > Number(accounts.empty) || Number(accounts.protected) > 1) return fail();
   const deductions = amounts.deductions;
   if (!isRecord(deductions) || ![amounts.walletBalanceLamports, amounts.grossRentLamports, amounts.estimatedNetLamports, deductions.serviceLamports, deductions.referralPortionLamports, deductions.subsidyLamports, deductions.serviceAccountRentLamports].every(amount)) return fail();
   if (deductions.networkFeeLamports !== null || deductions.referralRecipient !== "service" || amounts.estimatedNetIncludesNetworkFee !== false) return fail();

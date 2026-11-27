@@ -29,6 +29,8 @@ The npm `--silent` flag suppresses npm's command banner; compiler diagnostics go
 
 The [example JSON](docs/preview-v1-example.json) is illustrative, not a live observation. Lamport amounts are decimal strings. Use `BigInt` for exact arithmetic. The response separates gross rent, base service, referral portion, subsidy, and service account-rent charges. `networkFeeLamports: null` means unknown, not zero; estimated net excludes network fees. Candidate accounts and eligibility are provisional, not a transaction simulation. Token-2022 extensions and close authorities can prevent closure.
 
+Empty accounts with a foreign close authority can make `empty` exceed `candidates + protected`. Eligible previews can include an `UNSUPPORTED_CLOSE_AUTHORITY` warning.
+
 Observations include the minimum/maximum RPC context slots and a 30-second freshness window. The reads are not an atomic snapshot. Recheck before signing, even within that window.
 
 | Exit | Meaning |
