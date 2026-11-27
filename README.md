@@ -82,7 +82,7 @@ For most users, continue at [Reclaim](https://reclaim.mwh.app/) and review trans
 
 ## Advanced local execution
 
-Execution is a separate action from preview. It requires `WALLET_PRIVATE_KEY` on your own machine and automatically signs service-prepared batches. The current signer does not independently enforce a complete instruction/destination/fee policy. Do not treat a preview as permission for unattended execution.
+Execution is a separate action from preview. It requires `WALLET_PRIVATE_KEY` on your own machine and automatically signs service-prepared batches after a minimal [pre-sign check](#pre-sign-check). Do not treat a preview as permission for unattended execution.
 
 If you choose local execution, create `.env` from `.env.example` only if it does not already exist. Open it yourself and configure `WALLET_PRIVATE_KEY` (base58 secret key or JSON byte array). Do not overwrite existing configuration. Never paste the private key into chat, a website, screenshots, logs, or support messages.
 
@@ -97,9 +97,20 @@ Without a public-address argument, the text preview derives the wallet from your
 npm run reclaim
 ```
 
-`npm run start` is equivalent. These commands request transactions, sign locally, and submit signed batches through the Reclaim service. They begin execution without another per-batch browser confirmation. The private key is not sent to the service.
+`npm run start` is equivalent. These commands run strictly sequential batches: the CLI requests one batch, checks and signs it locally, and submits it through the Reclaim service, which confirms it before the next batch can be prepared. They begin execution without another per-batch browser confirmation. The private key is not sent to the service.
 
-Review transaction IDs and failures. Some batches can confirm while others fail. Re-scan before retrying. The current CLI performs one pass with bounded submission concurrency; it is intended for empty-account rent recovery, not arbitrary token transfers or transactions.
+Review transaction IDs and failures. A run stops at the first failure, and earlier batches may already have confirmed. If a batch expires before it reaches Solana, the CLI prepares a fresh one (at most twice). If a submission fails or times out, its outcome is unknown, so the CLI stops instead of preparing a replacement. Check the transactions and re-scan with `npm run wallet:check` before retrying. The CLI is intended for empty-account rent recovery, not arbitrary token transfers or transactions.
+
+### Pre-sign check
+
+Before signing, the CLI decodes each prepared transaction. It refuses to sign, and prints the failed rule and instruction index, unless all of these hold:
+
+- a. Every account closed with the wallet as close authority sends its lamports to the wallet.
+- b. SOL leaving the wallet through System transfers totals no more than the fees the service quoted for that batch (service, referral and service-rent fees).
+- c. No other instruction uses the wallet as signer or authority. Token-2022 withheld-fee harvests on accounts being closed are allowed.
+- d. The transaction does not use a durable nonce.
+
+The check is deliberately minimal, so that ordinary service-side changes do not block legitimate reclaims. It does not verify fee recipient addresses, exact fee amounts, the fee payer, the programs used, or instructions that do not involve the wallet. Fees are capped by the service's own quote, not computed independently.
 
 ## Development checks
 
@@ -107,4 +118,4 @@ Review transaction IDs and failures. Some batches can confirm while others fail.
 npm test
 ```
 
-Tests include preview JSON validation, zero-result and failure cases, and local mock-server checks of the actual CLI process and dependency-free example. No tests submit a live Solana transaction.
+Tests include preview JSON validation, zero-result and failure cases, the pre-sign check against transactions shaped like the service's current builder, and local mock-server checks of the actual CLI process, the sequential execution flow and the dependency-free example. No tests submit a live Solana transaction.

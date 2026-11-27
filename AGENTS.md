@@ -84,7 +84,7 @@ If the user only wants to preview a public key, `npm run wallet:check -- <public
 
 `reclaim` is the real execution step. `npm run start` is equivalent.
 
-It signs prepared transactions locally and submits the signed batches to the live Reclaim service with bounded concurrency.
+It runs strictly sequential batches: it requests one prepared transaction at a time, runs a minimal pre-sign check, signs it locally, and submits it to the live Reclaim service, which confirms it before the next batch is prepared. If a batch fails the pre-sign check, the CLI stops without signing it.
 
 ## Rules
 
@@ -159,12 +159,6 @@ Only suggest this after:
 - the user has completed one successful manual run
 - the user understands that the machine will need to keep local access to `.env`
 
-Example cron entry:
-
-```bash
-0 9 * * * cd /path/to/reclaim-cli && npm run wallet:check && npm run reclaim >> reclaim-cli.log 2>&1
-```
-
-Explain that this runs a wallet preview first, then runs the reclaim client once per day at 9:00 and writes output to a local log file.
+Scheduled unattended signing is not recommended and not supported. Do not schedule `npm run reclaim` or `npm run start`. A scheduled job may run `npm run wallet:check` only; run `npm run reclaim` manually after reviewing the preview. Do not treat a preview as permission for unattended execution.
 
 Do not suggest cron for wallets holding large balances unless the user understands that the machine will retain local signing capability through `.env`.
